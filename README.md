@@ -1,166 +1,139 @@
-# Data Parameters: A New Family of Parameters for Learning a Differentiable Curriculum
-This repository accompanies the research paper, 
-[Data Parameters: A New Family of Parameters for Learning a Differentiable Curriculum](
-https://papers.nips.cc/paper/9289-data-parameters-a-new-family-of-parameters-for-learning-a-differentiable-curriculum)
-(accepted at NeurIPS 2019). The online copy of the poster is available 
-[here](./media/data_parametres_neurips19_poster.pdf).
-
-## Citation
-If you find this code useful in your research then please cite:
-```
-@article{saxena2019data,
-  title={Data Parameters: A New Family of Parameters for Learning a Differentiable Curriculum},
-  author={Saxena, Shreyas and Tuzel, Oncel and DeCoste, Dennis},
-  booktitle={NeurIPS},
-  year={2019}
-}
-```
-## Data Parameters
-In the paper cited above, we have introduced a new family of parameters termed "data parameters".
-Specifically, we equip each class and training data point with a learnable parameter (data parameters), which governs 
-their importance during different stages of training. Along with the model parameters, the data parameters are also 
-learnt with gradient descent, thereby yielding a curriculum which evolves during the course of training.
-More importantly, post training, during inference, data parameters are not used, and hence do not alter the model's 
-complexity or run-time at inference. 
-
-![Training Overview](media/method_overview.png)
+# Data Encrichment with Data Parameters
+This repository contains the code for data-cleaning/enrichment using [Data Parameters](https://papers.nips.cc/paper/9289-data-parameters-a-new-family-of-parameters-for-learning-a-differentiable-curriculum).
+The code in this repo is forked from the [open source]() implementation of Data Parameters, and is upgraded and modified to support data enrichment. To understand more about data parameters method you can read the paper
+and README in the original repository. In this ReadMe, post setup and installation, we will detail a walkthrough/example of analyzing the popular ImageNet dataset.
 
 
 ## Setup and Requirements
-This code was developed and tested on Nvidia V100 in the following environment.
+This code was developed and tested on RunPod in the following environment:
 
-- Ubuntu 18.04
-- Python 3.6.9
-- Torch 1.2.0
-- Torchvision 0.4
+- Ubuntu 22.04
+- Python 3.10.12
+- CUDA 11.8
 
-## Getting Started
-Apart from the system requirements, you would also need to download ImageNet dataset locally.
-This path needs to be provided to main_imagenet.py with --data argument. 
+Other requirements are mentioned in requirements.txt file. You can create a python virtual enviorment and install the dependencies there. 
+Important: You need to register on hugging face with your email, and get approval to use ImageNet dataset. 
+Once you do that, you can create an authentication token, which will be used to download ImageNet or other proprietary datasets.
+Most of the experiments were run on RunPod platform. You can create a persistent storage disk there, which can be attached to multiple instances. 
+Using a persistent disk will help with keeping all the setup (including the virtual enviorment) preserved across sessions. 
+A sample script to run after logging into runpod instance is provided [here](./shell_scripts/runpod_setup.sh).
+You can use RTXA4000 or RTXA4500 GPUs to optimize the run-time vs cost of renting tradeoff on runpod. Both of them cost around 0.34$/hour.
 
-
-### Training model with data parameters
-With very little modification, an existing DNN training pipeline can be modified to use data parameters.
-- The first modification is change in data loader. In contrast to standard data loaders which return (x_i, y_i) as 
-a tuple. We need to return the index of the sample. This is a one line change in \__getitem\__ function (see 
-[cifar_dataset.py](dataset/cifar_dataset.py) or [imagenet_dataset.py](dataset/imagenet_dataset.py)). Note, this 
-change is required to implement instance level curriculum. Class level curriculum can be implemented without this 
-modification.
-
-- This brings us to the second change (crucial), change in optimizer. Standard optimizers in a deep learning framework like 
-PyTorch are built for model parameters. They assume that at each iteration, all parameters are involved in the 
-computational graph and receive a gradient. Therefore, at each iteration, all parameters undergo a weight decay 
-penalty, along with an update to their corresponding momentum buffer. These assumptions and updates are valid for model
-parameters, but not for data parameters. At each iteration, only a subset of data parameters are part of the 
-computational graph (corresponding to classes and instances in the minibatch). Using standard optimizers 
-from PyTorch for data parameters will apply a weight decay penalty on all data parameters at each iteration, and 
-will therefore nullify the learnt curriculum. To circumvent this issue, we apply weight decay explicitly on the 
-subset of data parameters participating in the minibatch. Also, we have implemented a SparseSGD optimizer which performs 
-a sparse update of momentum buffer, updating buffer only for data parameters present in the computational graph.
-More information can be found in file [sparse_sgd.py](optimizer/sparse_sgd.py).
-
-- Apart from these changes, the only change required is instantiation of data parameters and rescaling of logits with data
-parameters in the forward pass. Since data parameters interact with model at the last layer, in practice, there is 
-negligible overhead in training time. 
-
-- The three things which can be tuned for data parameters is their: initialization, learning rate, and weight decay. 
-In practice, we have set initialization of data parameters to 1.0 (initializes training to use standard softmax loss).
-This leaves us with two hyper-parameters whose value can be set by grid-search. In our experiments, we found data 
-parameters to be robust to variations in these hyper-parameters. 
-
-Below we provide example commands along with the hyper-parameters to reproduce results on ImageNet and
-CIFAR100 noisy dataset from the paper. 
-
-### ImageNet 
-#### Baseline 
-```
-python main_imagenet.py \
-  --arch 'resnet18' \ 
-  --gpu 0 \
-  --data 'path/to/imagenet' \
-```
-This command will train ResNet18 architecture on ImageNet dataset without data parameters. 
-This experiment can be used to obtain baseline performance without data parameters.
-Running this script, you should obtain 70.2% accuracy on validation @ 100 epoch.
-
-
-#### Train with class level parameters 
-To train ResNet18 with class-level parameters you can use this command:
-```
-python main_imagenet.py \
-  --arch 'resnet18' \ 
-  --data 'path/to/imagenet' \
-  --init_class_param 1.0 \
-  --lr_class_param 0.1 \
-  --wd_class_param 1e-4 \
-  --learn_class_paramters \
-```
-Note, the learning rate, weight decay and initial value of class parameters can be specified 
-using --lr_class_param, --wd_class_param and --init_class_param respectively. 
-Running this script with the hyper-parameters specified above, you should obtain 70.5% accuracy on 
-validation @ 100 epoch. You can run this script with different values of lr_class_param and wd_class_param 
-to obtain more intuition about data parameters. 
-
-To facilitate introspection, the training script dumps the histogram, mean, highest and the lowest value of 
-data parameters in the tensorboard for visualization. For example, in the figure below, we can visualize the histogram
-of class-level parameters (x-axis) over the course of training (y-axis). The parameters of each class vary in the start 
-of training, but towards the end of training, they all converge to similar value (indicating all classes were given 
-close to equal importance at convergence).
-![Histogram of class level parameters](./media/histogram_class_temperature_over_iterations.png)
-
-#### Joint training with class and instance level parameters
-As mentioned in the paper, it is possible to train with class and instance level parameters in a joint manner. 
-To train ResNet18 with both parameters you can use this command:
-```
-python main_imagenet.py \
-  --arch 'resnet18' \ 
-  --data 'path/to/imagenet' \
-  --init_class_param 1.0 \
-  --lr_class_param 0.1 \
-  --wd_class_param 1e-4 \
-  --init_inst_param 0.001 \
-  --lr_inst_param 0.8 \
-  --wd_inst_param 1e-8 \
-  --learn_class_paramters \
-  --learn_inst_parameters 
-```
-For joint training setup, class and instance level parameters are initialized to 1.0 and 0.001. This is to ensure that 
-their initial sum is close to 1.0. We did not experiment with other initialization schemes, but data parameters can
-be initialized with any arbitrary value (greater than 0). Running this script with the hyper-parameters specified 
-above, you should obtain 70.8% accuracy on validation @ 100 epoch.
-
-
-#### CIFAR100 Noisy Data
-[cifar_dataset.py](dataset/cifar_dataset.py) extends the standard CIFAR100 dataset from torchvision to allow corruption
+### Data Cleaning CIFAR100 40% noisy labels
+In this section, we will provide you scripts for reproducing results of CIFAR100-40% noisy task. In this setup, we corrupt 40% of CIFAR100 dataset by changing their labels. 
+Our goal is to detect these noisy/mislabelled samples automatically. [cifar_dataset.py](dataset/cifar_dataset.py) extends the standard CIFAR100 dataset from torchvision to allow corruption
 of a subset of data with uniform label swap.
 
 #### Baseline 
 ```
 python main_cifar.py \
   --rand_fraction 0.4 \
+  --exp_prefix 'baseline_40frac_corrupt' \
+  --restart
 ```
 This command trains WideResNet28_10 architecture on CIFAR100 dataset (corruption rate=40%) without data parameters. 
-This experiment can be used to obtain baseline performance without data parameters.
-Running this script, you should obtain 50.0% accuracy at convergence (see Table 2 in paper).
+This experiment can be used to obtain baseline performance without data parameters. Running this script, you should obtain 50.0% accuracy at convergence.
 
 #### Train with instance level parameters
 Since the noise present in the dataset is at instance level, we can train the DNN model with instance level parameters
-to learn instance specific curriculum. The curriculum should learn to ignore learning from corrupt samples in the 
-dataset.
+to learn instance specific curriculum. The curriculum should learn to ignore learning from corrupt samples in the dataset.
 ```
 python main_cifar.py \
   --rand_fraction 0.4 \
   --init_inst_param 1.0 \
   --lr_inst_param 0.2 \
   --wd_inst_param 0.0 \
-  --learn_inst_parameters 
+  --learn_inst_parameters \
+  --exp_prefix 'corrupt_label/with_inst_params_lr_0.2_40frac_corrupt_labels' \
+  --restart
 ```
 Running this script, using instance level parameters, you should obtain 71% accuracy @ 84th epoch. 
 For results on noisy datasets, we always perform early stopping at 84th epoch (set by cross-validation).
-Running with the same hyper-parameters for instance parameters, for 20% and 80% corruption rate, you should obtain 75%
- and 35% accuracy respectively. 
+
+
+#### Identifying noisy-corrupt samples automatically
+When we train with instance level data parameters, for each data point in the dataset, we learn a parameter (instance level data parameter). 
+During training, we save these instance-level values after every epoch. Probability of a sample being noisy/ mislabelled is proportional to the value of data parameter. 
+With this heuristic in mind, to automatically extract the nosiy mislabelled samples, we can inspect the instance-level data parameters at the end 
+of training (or an epoch at which validation accuracy had peaked) and sort them by the data-parameter value, and extract the indices for the top-k fraction of dataset.
+
+#### Training after removal of noisy samples
+We can also re-train our model by automatically removing the corrupt samples from dataset.
+To do this, we just need to specify the saved_artifact containing the instance-level data parameters.
+For example, in the code below, we are going to train with only 60% (subset_frac) of training data. The 40% of data that we discard, is going to be computed 
+from the instance-level data parameters saved in 'dataset_subset_ckpt'.
+
+```
+python main_cifar.py \
+  --rand_fraction 0.4 \
+  --exp_prefix 'filtered_with_epoch_80_40frac_corrupt' \
+  --dataset_subset_ckpt 'weights_CL/cifar100/with_inst_params_lr_0.2_40frac_corrupt/epoch_80.pth.tar' \
+  --subset_frac 0.60 \
+  --restart
+```
+
+
+### ImageNet - Data Enrichment Analysis
+In this section we are going to demonstrate how this tool can be used for analyzing the various classes present in the dataset automatically. 
+Note: To run this section, you need to ensure you have hugging-face account and token to download ImageNet dataset. 
+First time you will run this script, it will take an hour to download the entire the entire ImageNet. But successive calls will use the cached dataset.
+
+
+#### Baseline 
+First step is to validate the ImageNet setup. 
+```
+python main_imagenet.py \
+  --arch 'resnet18' \
+  --exp_prefix 'baseline_lr_0.1_wd_1e-4' \
+  --restart
+```
+This command will train ResNet18 architecture on ImageNet dataset without data parameters. 
+This experiment can be used to obtain baseline performance without data parameters.
+Running this script, you should obtain 70.2% accuracy on validation @ 100 epoch.
+
+
+#### Training with instance-level parameters
+Since we are interested in instance level analysis, we wil now train on ImageNet dataset with Instance level parameters.
+To train ResNet18 with instance-level data parameters you can use this command:
+```
+python main_imagenet.py \
+  --arch 'resnet18' \
+  --lr_inst_param 0.8 \
+  --wd_inst_param 1e-8 \
+  --learn_inst_parameters \
+  --exp_prefix 'with_inst_params_lr_0.8_wd_1e-8' \
+  --restart
+```
+This command will train with instance-level data-parameters. We have set two more hyper-parameters: 'lr_inst_param' and 'wd_inst_param'. Generally speaking, instance level learning rate can be higher than model parameters learning rate (e.g. it is 0.1 by default.)
+
+
+##### Auto classification/ analysis of ImageNet
+Once the training is complete, we will have all the training artifacts saved in the checkpoint folder.
+The training artifacts contain instance-level data parameters saved at every epoch. For our auto-analysis of the dataset, we are going to analyze the temporal trajectory of the data parameters.
+
+[](media/instance_level_trajectory.png)
+
+
+Broadly speaking, we are going to classify the training data points into three categories: 'easy', 'hard/outliers' and 'need review'. For auto cleaning, we can just re-train with 'easy' samples. For manual verification, we can ask QA to just look at 'need review' samples. This kind of analysis can help reveal sub-categories in the dataset which might be under-represented. For example, in lobster class, most images are of lobster against the ground but few images might be of lobster on a plate. 
+
+There are two kind of visualizations which can be auto-created.  
+Note, both of these visulizations are per class, i.e. we analyze one class at a time.
+Also, the label of the instance can be inferred by the border-color of the image. Easy-labelled images have green, Hard-labelled images have red and Need review-labelled images have orange border.
+
+- Easy vs Hard vs Need Review: In this visualization we plot the few representative samples of the easy, hard samples, and samples which need review as three rows. This is the most preferred or easy way of presenting analysis to a client. To perform this analysis you can run:
+```
+python ./auto_analysis/easy_hard_and_need_review.py 
+```
+In this script, you need to set the 'analysis_dir" to the checkpoint folder of the run.
+
+- TSNE Plots: In this visualization we plot all the images in a class as a scatter plot. Scatter plot is obtained by running T-SNE analysis on the temporal instance-level data parameter value. Essentialy, if we trained the model for K epochs, for each data point, we will have a K instance-level data parameter value. T-SNE analysis converts this K-dimensional representation to a 2D representation for visualization, while ensuring the points similar in the K-dimensional space are plotted close to each other in 2D space. Therefore, you can see points which are classified as easy, hard or need-review are well clustered in this view. To perform this analysis you can run:
+```
+python ./auto_analysis/tsne_plots.py 
+```
+In this script, you need to set the 'analysis_dir" to the checkpoint folder of the run.
 
 
 
-## License
-This code is released under the [LICENSE](LICENSE) terms.
+## Miscellaneous
+- To analyze ImageNet using CleanLab Studio, we need to convert it into a folder structure which is accepted by CleanLab.
+'dump_imagenet.py' file converts our locally downloaded ImageNet dataset into a format suitable for uploading to CleanLab.
