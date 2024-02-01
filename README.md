@@ -109,16 +109,12 @@ This command will train with instance-level data-parameters. We have set two mor
 
 ##### Auto classification/ analysis of ImageNet
 Once the training is complete, we will have all the training artifacts saved in the checkpoint folder.
-The training artifacts contain instance-level data parameters saved at every epoch. For our auto-analysis of the dataset, we are going to analyze the temporal trajectory of the data parameters.
+The training artifacts contain instance-level data parameters saved at every epoch. To analyze the training dataset, we are going to analyze the temporal trajectory of the data parameters. The figure below shows the temporal trajectory of instance-level data parameters for two instances.
+![Instance Level trajectory for two instances of Penguin class](./media/instance_level_trajectory.png)
 
-[](media/instance_level_trajectory.png)
-
-
-Broadly speaking, we are going to classify the training data points into three categories: 'easy', 'hard/outliers' and 'need review'. For auto cleaning, we can just re-train with 'easy' samples. For manual verification, we can ask QA to just look at 'need review' samples. This kind of analysis can help reveal sub-categories in the dataset which might be under-represented. For example, in lobster class, most images are of lobster against the ground but few images might be of lobster on a plate. 
-
-There are two kind of visualizations which can be auto-created.  
-Note, both of these visulizations are per class, i.e. we analyze one class at a time.
-Also, the label of the instance can be inferred by the border-color of the image. Easy-labelled images have green, Hard-labelled images have red and Need review-labelled images have orange border.
+Our tool labels the training data points into three categories: 'easy', 'hard/outliers' and 'need review'. 
+If our use case is to **auto-clean the dataset** (no human intervention), then we can just re-train with 'easy' samples. 
+For **enriching the dataset**, we will rely on manual verification. More specifically, instances labelled as 'need review' or 'outlier' can be re-labelled/verified by annotator.
 
 - Easy vs Hard vs Need Review: In this visualization we plot the few representative samples of the easy, hard samples, and samples which need review as three rows. This is the most preferred or easy way of presenting analysis to a client. To perform this analysis you can run:
 ```
@@ -132,6 +128,9 @@ python ./auto_analysis/tsne_plots.py
 ```
 In this script, you need to set the 'analysis_dir" to the checkpoint folder of the run.
 
+Manual inspection of visulization output from our tool can help reveal sub-categories in the dataset which might be under-represented. For example, in lobster class, most images are of lobster against the ground but few images might be of lobster on a plate. 
+There are two kind of visualizations which can be auto-created. *Note*, both of these visulizations are per class, i.e. we analyze one class at a time.
+Also, the label of the instance can be inferred by the border-color of the image. Easy-labelled images have green, Hard-labelled images have red and Need review-labelled images have orange border.
 
 
 ## Miscellaneous
