@@ -1,0 +1,10 @@
+torch==2.1.1+cu121
+torchvision==0.16.1+cu121
+datasets[vision]==2.15.0
+tensorflow==2.15.0
+tensorboard_logger
+huggingface
+tqdm
+jupyter
+matplotlib
+scikit-learn

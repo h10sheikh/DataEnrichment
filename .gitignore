@@ -1,0 +1,6 @@
+*__pycache__
+*logs_CL/
+*weights_CL/
+*notebook/.ipynb_checkpoints
+*auto_analysis/output/
+*imagenet_cleanlab_upload/
