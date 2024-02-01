@@ -126,6 +126,7 @@ if __name__ == '__main__':
 
     ## Analyze samples of particular class
     for class_idx in tqdm(range(0, 1000, 100)): # Analayze 1 out of 10 classes. 
+    #for class_idx in [145]: # Analayze penguin class
 
         # Find temperatuere of instances of this class at convergence
         instance_class_idx = np.where(label_instances == class_idx)[0]       # (1, n)

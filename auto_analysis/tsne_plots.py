@@ -82,7 +82,7 @@ def classify_image_based_on_data_params(instance_class_temp_all_epochs):
     return all_image_label
 
 if __name__ == '__main__':
-    analysis_dir = './weights_CL_imagenet/with_inst_params_lr_0.8_wd_1e-8'
+    analysis_dir = './weights_CL/imagenet/with_inst_params_lr_0.8_wd_1e-8'
     folder_name = analysis_dir.split('/')[-1]
     save_dir = f'./auto_analysis/output/scatter_plot_tsne/{folder_name}'
 
@@ -115,6 +115,7 @@ if __name__ == '__main__':
 
     ## Analyze samples of particular class
     for class_idx in tqdm(range(0, 1000, 10)): # Analayze 1 out of 10 classes. 
+    #for class_idx in [145]: # Analayze penguin class
         print(f'Analyzing class {class_idx}: {id2label[class_idx]}')
 
         save_path = f"{save_dir}/class_{class_idx}_{id2label[class_idx]}.pdf"
