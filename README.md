@@ -1,7 +1,7 @@
 # Data Encrichment with Data Parameters
 This repository contains the code for data-cleaning/enrichment using [Data Parameters](https://papers.nips.cc/paper/9289-data-parameters-a-new-family-of-parameters-for-learning-a-differentiable-curriculum).
 The code in this repo is forked from the [open source]() implementation of Data Parameters, and is upgraded and modified to support data enrichment. To understand more about data parameters method you can read the paper
-and README in the original repository. In this ReadMe, post setup and installation, we will detail a walkthrough/example of analyzing the popular ImageNet dataset.
+and README in the original repository. In this ReadMe, post setup and installation, we will detail a walkthrough/example of detecting noise in CIFAR100 corrupt dataset and analyzing the popular ImageNet dataset.
 
 
 ## Setup and Requirements
