@@ -108,7 +108,7 @@ There are two kind of visualizations which can be auto-created for qualitative i
 python ./auto_analysis/easy_hard_and_need_review.py 
 ```
 In this script, you need to set the 'analysis_dir" to the checkpoint folder of the run. Sample output of this script for the **Penguin** class is shown below:
-![](./media/class_145_king_penguin_easy_hard_need_review.png)
+![](./media/penguin_easy_hard_need_review.jp2)
 
 - **TSNE Plots**: In this visualization we plot all the images in a class as a scatter plot. Scatter plot is obtained by running T-SNE analysis on the temporal instance-level data parameter value. Essentialy, if we trained the model for K epochs, for each data point, we will have a K instance-level data parameter value. T-SNE analysis converts this K-dimensional representation to a 2D representation for visualization, while ensuring the points similar in the K-dimensional space are plotted close to each other in 2D space. Therefore, you can see points which are classified as easy, hard or need-review are well clustered in this view. To perform this analysis you can run:
 ```
