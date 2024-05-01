@@ -1,4 +1,6 @@
 # Data Enrichment with Data Parameters
+In contrast to conventional training approaches, you can achieve better results by using Data Parameters without increasing the complexity or size of the model. It also allows you to detect mislabeled or erroneous labels in your dataset and further improve the quality of the resulting trained model. 
+
 This repository contains the code for data-cleaning/enrichment using [Data Parameters](https://papers.nips.cc/paper/9289-data-parameters-a-new-family-of-parameters-for-learning-a-differentiable-curriculum).
 The code in this repo is forked from the [open source](https://github.com/apple/ml-data-parameters) implementation of Data Parameters, and is upgraded and modified to support data enrichment.
 
